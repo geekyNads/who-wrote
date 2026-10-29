@@ -1,0 +1,76 @@
+# All scoring weights. Every value says where it came from.
+# "seed" = starting point from the add-signal / scoring-calibration skills, untuned.
+# Fingerprints are from agent-fingerprints/fingerprints.md, NOT yet verified on real repos (2026-10-29).
+# Retune with the evaluate-detector skill once data/manifest.jsonl exists.
+
+temperature: 1.0          # seed; raise if eval shows overconfidence
+human_baseline: 1.0       # seed; fixed score for human_unknown so weak evidence stays inconclusive
+inconclusive_below: 0.40  # scoring-calibration: headline says Inconclusive under this top prob
+
+# Max score one signal can add, by tier. log1p alone lets a weak style hit in 1000 files
+# (0.8 * 10) outweigh a commit trailer; caps keep tier 3/4 "individually weak". Seed values.
+tier_cap:
+  1: 12.0
+  2: 4.0
+  3: 1.5
+  4: 1.0
+
+# log of rough market share, kept modest so evidence dominates (seed guesses, 2026-10)
+priors:
+  claude_code: 0.0
+  cursor: 0.0
+  copilot: 0.0
+  codex: -0.5
+  devin: -1.5
+  aider: -1.0
+  windsurf: -1.0
+  cline: -1.0
+  gemini_cli: -1.0
+  human_unknown: 0.0
+
+signals:
+  # --- tier 1: provenance (near-decisive; seed range 4-8) ---
+  tier1.claude_coauthor_trailer: 6.0   # fingerprints.md; unverified 2026-10-29
+  tier1.claude_generated_with: 5.0     # fingerprints.md; usually co-occurs with trailer
+  tier1.cursor_coauthor_trailer: 6.0   # cursoragent@cursor.com trailer; unverified 2026-10-29
+  tier1.copilot_coauthor_trailer: 5.0  # fingerprints.md; unverified 2026-10-29
+  tier1.aider_message_prefix: 5.0      # older aider versions; fingerprints.md
+  tier1.cursor_bot_author: 7.0         # bot identity; fingerprints.md
+  tier1.copilot_bot_author: 7.0        # copilot-swe-agent[bot]; fingerprints.md
+  tier1.codex_bot_author: 7.0          # fingerprints.md; unverified 2026-10-29
+  tier1.devin_bot_author: 7.0          # devin-ai-integration[bot]; fingerprints.md
+  tier1.aider_author_suffix: 7.0       # "Name (aider)"; fingerprints.md
+  tier1.jules_bot_author: 7.0          # google-labs-jules[bot] -> gemini_cli; fingerprints.md
+  tier1.unattributed_commits: 0.8      # human_unknown share correction; seed, set so 1/231 trailer
+                                       # commits (psf/requests, 2026-10-29) reads human (89%)
+  tier1.claude_code_branch_prefix: 4.0 # claude/ branches; lower: humans name branches too
+  tier1.cursor_branch_prefix: 4.0      # cursor/ background agents; fingerprints.md
+  tier1.copilot_branch_prefix: 4.0     # copilot/; fingerprints.md
+  tier1.codex_branch_prefix: 4.0       # codex/; fingerprints.md
+  tier1.devin_branch_prefix: 4.0       # devin/; fingerprints.md
+
+  # --- tier 2: config files (tool configured, not proof it wrote code; seed 1.5-3) ---
+  tier2.claude_config: 2.5      # CLAUDE.md / .claude/; fingerprints.md
+  tier2.cursor_config: 2.5      # .cursorrules / .cursor/; fingerprints.md
+  tier2.copilot_config: 2.0     # .github/copilot-instructions.md; fingerprints.md
+  tier2.agents_md: 2.0          # AGENTS.md, split across codex/cursor/gemini_cli
+  tier2.codex_config: 2.5       # .codex/; fingerprints.md
+  tier2.devin_config: 2.5       # .devin/; fingerprints.md
+  tier2.aider_config: 2.5       # .aider*; fingerprints.md
+  tier2.windsurf_config: 2.5    # .windsurfrules / .windsurf/; fingerprints.md
+  tier2.cline_config: 2.5       # .clinerules / memory-bank/ / .roo/; fingerprints.md
+  tier2.gemini_config: 2.5      # GEMINI.md / .gemini/; fingerprints.md
+
+  # --- tier 3: style (individually weak; seed 0.2-0.8). Generic ones split across all agents ---
+  tier3.existing_code_placeholder: 0.8  # "... existing code ..." left in files -> cursor
+  tier3.readme_template: 0.4            # Features/Installation/Usage/Project Structure -> claude
+  tier3.doc_status_emoji: 0.3           # ✅ ❌ in markdown -> claude
+  tier3.emoji_logs: 0.6                 # generic AI-ish; split
+  tier3.narrating_comments: 0.6         # generic AI-ish; split
+  tier3.broad_except_print: 0.4         # generic AI-ish; split
+
+  # --- tier 4: git behavior (seed 0.2-0.6) ---
+  tier4.conventional_bulleted: 0.6      # generic AI-ish; split
+  tier4.large_feature_commits: 0.4      # generic AI-ish; split
+  tier4.lazy_messages: 0.5              # human-leaning
+  tier4.long_irregular_history: 0.6     # human-leaning
