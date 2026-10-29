@@ -1,0 +1,26 @@
+[project]
+name = "whowrote"
+version = "0.1.0"
+description = "Estimate which AI coding agent wrote a git repository's code"
+requires-python = ">=3.11"
+dependencies = ["rich>=13", "pyyaml>=6"]
+
+[project.scripts]
+whowrote = "whowrote.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11", "types-pyyaml"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+strict = true
