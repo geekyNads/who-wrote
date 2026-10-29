@@ -45,6 +45,9 @@ def run(argv: list[str]) -> int:
     except subprocess.CalledProcessError as e:
         print(f"whowrote: git failed: {(e.stderr or '').strip() or e}", file=sys.stderr)
         return 2
+    except subprocess.TimeoutExpired:
+        print("whowrote: git timed out (set WHOWROTE_GIT_TIMEOUT to raise)", file=sys.stderr)
+        return 2
     except FileNotFoundError as e:
         print(f"whowrote: {e}", file=sys.stderr)
         return 2
