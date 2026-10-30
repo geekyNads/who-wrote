@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>who wrote</title>
+<meta name="description" content="Estimate which AI coding agent wrote a GitHub repository, with the evidence.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Ctext x='16' y='23' font-family='Helvetica,Arial' font-weight='700' font-size='20' fill='%23fff' text-anchor='middle'%3E%3F%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --fg: #000; --bg: #fff; --muted: #6b6b6b; --line: #e6e6e6; --accent: var(--fg);
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #fff; --bg: #000; --muted: #8c8c8c; --line: #1f1f1f; }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--bg); }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 680px; margin: 0 auto; padding: 14vh 20px 96px; }
+
+  h1 { font-size: clamp(44px, 11vw, 88px); font-weight: 800; letter-spacing: -0.05em; line-height: 0.95; }
+  .sub { color: var(--muted); margin-top: 16px; max-width: 34em; }
+
+  form { display: flex; margin-top: 44px; border: 1.5px solid var(--fg); }
+  form:focus-within { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4.5px var(--fg); }
+  label.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  input {
+    flex: 1; min-width: 0; border: 0; background: transparent; color: inherit;
+    font: inherit; padding: 15px 16px; outline: none;
+  }
+  input::placeholder { color: var(--muted); }
+  button {
+    flex: none; border: 0; background: var(--fg); color: var(--bg); font: inherit; font-weight: 600;
+    padding: 0 24px; cursor: pointer;
+  }
+  button:disabled { cursor: progress; opacity: 0.55; }
+  .status { margin-top: 14px; min-height: 24px; font-size: 14px; color: var(--muted); }
+  .status.error { color: var(--fg); }
+
+  #result { margin-top: 72px; }
+  #result[hidden] { display: none; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .agent {
+    margin-top: 10px; font-size: clamp(40px, 10vw, 72px); font-weight: 800; letter-spacing: -0.04em;
+    line-height: 1; color: var(--accent);
+  }
+  .agent .pct { font-weight: 300; }
+  .meta { margin-top: 12px; color: var(--muted); font-size: 14px; }
+  .reveal { animation: rise 0.6s cubic-bezier(.2, .7, .2, 1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+  .bars { margin-top: 40px; display: grid; gap: 12px; }
+  .row { display: grid; grid-template-columns: 128px 1fr 44px; align-items: center; gap: 14px; font-size: 14px; }
+  .row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .track { height: 6px; background: var(--line); }
+  .fill { height: 100%; width: 0; background: var(--fg); transition: width 0.9s cubic-bezier(.2, .7, .2, 1); }
+  .row.top .fill { background: var(--accent); }
+  .row.top .name { color: var(--accent); font-weight: 600; }
+
+  h2 { margin-top: 64px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .evidence { list-style: none; padding: 0; margin-top: 8px; }
+  .evidence li { border-top: 1px solid var(--line); padding: 16px 0; }
+  .evidence li:last-child { border-bottom: 1px solid var(--line); }
+  .sig { display: flex; justify-content: space-between; gap: 16px; font-weight: 600; font-size: 15px; }
+  .sig .who { font-weight: 400; color: var(--muted); text-align: right; }
+  .ev { margin-top: 6px; font: 12.5px/1.6 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+  .note { margin-top: 32px; font-size: 13px; color: var(--muted); }
+  footer { margin-top: 96px; font-size: 13px; color: var(--muted); }
+  footer a { color: inherit; }
+
+  @media (max-width: 480px) {
+    main { padding-top: 10vh; }
+    form { flex-direction: column; }
+    button { padding: 14px; }
+    .row { grid-template-columns: 118px 1fr 40px; gap: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { animation: none; }
+    .fill { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>who wrote<br>this code?</h1>
+  <p class="sub">Paste a public GitHub repo. We read its commits, config files and style, then estimate which AI coding agent wrote it, and show the evidence.</p>
+
+  <form id="form" novalidate>
+    <label class="sr" for="url">GitHub repository URL</label>
+    <input id="url" name="url" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+           placeholder="https://github.com/owner/repo" required>
+    <button id="go" type="submit">Analyze</button>
+  </form>
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <section id="result" hidden aria-live="polite">
+    <p class="eyebrow" id="eyebrow">Estimated author</p>
+    <p class="agent reveal" id="agent"></p>
+    <p class="meta" id="meta"></p>
+    <div class="bars" id="bars"></div>
+    <h2>Evidence</h2>
+    <ul class="evidence" id="evidence"></ul>
+    <p class="note">A probabilistic estimate from fingerprints, not proof. Humans edit agent output, and commit trailers can be stripped.</p>
+  </section>
+
+  <footer>Estimates only. <a href="https://github.com/geekyNads/who-wrote">Source</a></footer>
+</main>
+<script>
+  const LABELS = {
+    claude_code: "Claude Code", cursor: "Cursor", copilot: "Copilot", codex: "Codex",
+    devin: "Devin", aider: "Aider", windsurf: "Windsurf", cline: "Cline",
+    gemini_cli: "Gemini CLI", human_unknown: "Human / Unknown",
+  };
+  // The only color on the page: the announced agent. Human/Unknown and Inconclusive stay monochrome.
+  const COLORS = {
+    claude_code: "#D97757", cursor: "#E5484D", copilot: "#8957E5", codex: "#10A37F",
+    devin: "#F5A524", aider: "#14B8A6", windsurf: "#0EA5E9", cline: "#EC4899", gemini_cli: "#4285F4",
+  };
+  const GITHUB = /^(?:https?:\/\/)?github\.com\/[\w.-]+\/[\w.-]+(?:\.git)?(?:\/tree\/.+)?\/?$/;
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+
+  function setStatus(text, error = false) {
+    $("status").textContent = text;
+    $("status").classList.toggle("error", error);
+  }
+
+  function render(d) {
+    const top = d.estimated;
+    $("result").style.setProperty("--accent", (top && COLORS[top]) || "var(--fg)");
+    $("eyebrow").textContent = top ? "Estimated author" : "Estimated";
+    const agent = $("agent");
+    agent.replaceChildren();
+    if (top) {
+      agent.append(LABELS[top] + " ", el("span", "pct", d.percents[top] + "%"));
+    } else {
+      agent.textContent = "Inconclusive";
+    }
+    agent.classList.remove("reveal"); void agent.offsetWidth; agent.classList.add("reveal");
+    $("meta").textContent = `${d.commits} commits · ${d.files} files read` +
+      (top ? "" : " · no agent above 40%");
+
+    const rows = Object.entries(d.percents).filter(([, v]) => v >= 2).sort((a, b) => b[1] - a[1]);
+    const other = Object.values(d.percents).filter((v) => v < 2).reduce((a, b) => a + b, 0);
+    if (other) rows.push(["other", other]);
+    const bars = $("bars");
+    bars.replaceChildren();
+    const fills = [];
+    for (const [k, v] of rows) {
+      const row = el("div", "row" + (k === top ? " top" : ""));
+      const track = el("div", "track");
+      const fill = el("div", "fill");
+      track.append(fill);
+      const label = k === "human_unknown" ? "Human" : LABELS[k] || "Other";
+      row.append(el("span", "name", label), track, el("span", "n", v + "%"));
+      bars.append(row);
+      fills.push([fill, v]);
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      for (const [f, v] of fills) f.style.width = v + "%";
+    }));
+
+    const list = $("evidence");
+    list.replaceChildren();
+    const seen = new Map();
+    for (const s of d.signals) {
+      if (!seen.has(s.id)) seen.set(s.id, { ...s, agents: [] });
+      seen.get(s.id).agents.push(s.agent);
+    }
+    if (!seen.size) list.append(el("li", "ev", "No signals found."));
+    for (const s of seen.values()) {
+      const li = el("li");
+      const head = el("div", "sig");
+      const name = s.id.split(".")[1].replaceAll("_", " ");
+      const who = s.agents.length > 3 ? "AI agents (generic)" : s.agents.map((a) => LABELS[a]).join(", ");
+      head.append(el("span", "", `${name} ×${s.count}`), el("span", "who", `tier ${s.tier} · ${who}`));
+      li.append(head);
+      for (const line of s.evidence) li.append(el("div", "ev", line));
+      list.append(li);
+    }
+    $("result").hidden = false;
+  }
+
+  async function run(url) {
+    if (!GITHUB.test(url)) {
+      setStatus("Paste a GitHub repo URL, like https://github.com/owner/repo", true);
+      return;
+    }
+    $("go").disabled = true;
+    const started = Date.now();
+    const tick = () => setStatus(`Cloning and analyzing… ${Math.round((Date.now() - started) / 1000)}s`);
+    tick();
+    const timer = setInterval(tick, 1000);
+    try {
+      const res = await fetch("/api/analyze?url=" + encodeURIComponent(url));
+      const data = await res.json().catch(() => ({ error: "Unexpected response from the server." }));
+      if (!res.ok) throw new Error(data.error || "Request failed.");
+      render(data);
+      setStatus("");
+      history.replaceState(null, "", "?repo=" + encodeURIComponent(url));
+    } catch (e) {
+      setStatus(e.message === "Failed to fetch" ? "Couldn't reach the server." : e.message, true);
+    } finally {
+      clearInterval(timer);
+      $("go").disabled = false;
+    }
+  }
+
+  $("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    run($("url").value.trim());
+  });
+  const shared = new URLSearchParams(location.search).get("repo");
+  if (shared) { $("url").value = shared; run(shared); }
+</script>
+</body>
+</html>

@@ -18,6 +18,7 @@ GITHUB_URL = re.compile(
 
 # No hooks, no credential prompts, no LFS downloads.
 _SAFE = ("-c", "core.hooksPath=/dev/null")
+GIT_TIMEOUT_S = int(os.environ.get("WHOWROTE_GIT_TIMEOUT", "180"))  # per git call
 
 
 def _env() -> dict[str, str]:
@@ -41,6 +42,7 @@ def _run(*args: str) -> str:
         encoding="utf-8",
         errors="replace",
         env=_env(),
+        timeout=GIT_TIMEOUT_S,
     ).stdout
 
 

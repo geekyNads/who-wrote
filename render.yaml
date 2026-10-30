@@ -1,0 +1,14 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: who-wrote
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free  # 512 MB RAM, sleeps when idle; bump to starter if big repos run out of memory
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: WHOWROTE_MAX_JOBS
+        value: "2"
+      - key: WHOWROTE_GIT_TIMEOUT
+        value: "120"
